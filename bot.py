@@ -2,10 +2,26 @@ import os
 import discord
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
+from flask import Flask
+from threading import Thread
 
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+
+app = Flask("")
+
+@app.route("/")
+def home():
+    return "Bot is alive!"
+
+def run_web():
+    app.run(host="0.0.0.0", port=8080)
+
+def keep_alive():
+    server = Thread(target=run_web)
+    server.start()
+
 
 WELCOME_CHANNEL_ID = 1468641218660667582
 ROLE_ID = 1438554888845000784
@@ -151,4 +167,5 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
+keep_alive()
 bot.run(TOKEN)
