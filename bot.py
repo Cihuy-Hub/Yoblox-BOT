@@ -1,41 +1,23 @@
 import os
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from dotenv import load_dotenv
-from flask import Flask
-from threading import Thread
 
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-app = Flask("")
-
-@app.route("/")
-def home():
-    return "Bot is alive!"
-
-@app.route("/health")
-def health():
-    return "OK"
-
-def run_web():
-    app.run(host="0.0.0.0", port=8080)
-
-def keep_alive():
-    Thread(target=run_web, daemon=True).start()
-
-
-WELCOME_CHANNEL_ID = 1468641218660667582
-ROLE_ID = 1438554888845000784
-VERIFY_CHANNEL_ID = 1470498490818756877
+WELCOME_CHANNEL_ID = 1468641218660667582  
+ROLE_ID = 1438554888845000784            
+VERIFY_CHANNEL_ID = 1470498490818756877  
 GOODBYE_CHANNEL_ID = 1468314237372993749
 BOOST_CHANNEL_ID = 1470219129465208905
-GUILD_ID = 1438554317647904952
+GUILD_ID = 1438554317647904952  
 
-WELCOME_IMAGE_URL = "https://cdn.discordapp.com/attachments/1438554318260146331/1493329315344154796/standard_1.gif"
-GOODBYE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1438554318260146331/1493336428321574955/standard_3.gif"
-BOOST_IMAGE_URL = "https://cdn.discordapp.com/attachments/1438554318260146331/1493557946729365564/standard_4.gif"
+
+WELCOME_IMAGE_URL = "https://cdn.discordapp.com/attachments/1438554318260146331/1493329315344154796/standard_1.gif?ex=69de92cd&is=69dd414d&hm=04f67096d68b68666c0b4a2920d21509a095cdeedb2c7a104a8fee044e5bcb65&"
+GOODBYE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1438554318260146331/1493336428321574955/standard_3.gif?ex=69de996d&is=69dd47ed&hm=7b466fea938f1d2c5ada59a77d01b3d53f137cc6ea6ce2e50971529ca96d4149&"
+BOOST_IMAGE_URL   = "https://cdn.discordapp.com/attachments/1438554318260146331/1493557946729365564/standard_4.gif?ex=69df67bb&is=69de163b&hm=6e14b924d9d7c87c883cee3c7e8ed4b273b15b2ce1a2bfc1ce404dbb0ee169a8&"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -43,28 +25,33 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+import discord
+from discord.ext import commands, tasks
 
 @bot.event
 async def on_ready():
-    print(f"Bot aktif sebagai {bot.user}")
-
-    if not update_status.is_running():
-        update_status.start()
-
+    print(f"Bot login sebagai {bot.user}")
+    update_status.start()
 
 @tasks.loop(minutes=1)
 async def update_status():
     guild = bot.get_guild(GUILD_ID)
-
     if guild is None:
         return
+
+    member_count = guild.member_count
 
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name=f"{guild.member_count} members"
+            name=f"{member_count} members"
         )
     )
+
+
+@bot.event
+async def on_ready():
+    print(f"Bot aktif sebagai {bot.user}")
 
 
 @bot.event
@@ -123,7 +110,6 @@ async def on_member_remove(member):
 
     await channel.send(embed=embed)
 
-
 @bot.event
 async def on_member_update(before, after):
     booster_role = after.guild.premium_subscriber_role
@@ -131,6 +117,7 @@ async def on_member_update(before, after):
     if booster_role is None:
         return
 
+    # cek kalau baru boost
     if booster_role not in before.roles and booster_role in after.roles:
         channel = bot.get_channel(BOOST_CHANNEL_ID)
 
@@ -153,22 +140,45 @@ async def on_member_update(before, after):
 
         await channel.send(embed=embed)
 
+@bot.event
+async def on_ready():
+    print(f"Bot login sebagai {bot.user}")
+    update_status.start()
+
+@tasks.loop(minutes=1)
+async def update_status():
+    guild = bot.get_guild(GUILD_ID)
+    if guild is None:
+        return
+
+    member_count = guild.member_count
+
+    await bot.change_presence(
+        activity=discord.Activity(
+            type=discord.ActivityType.watching,
+            name=f"{member_count} members"
+        )
+    )
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    pesan = message.content.lower()
-
-    if pesan == "oi":
+    if message.content.lower() == "oi":
         await message.channel.send("# APA WOI")
 
-    elif pesan == "alo":
+    await bot.process_commands(message)
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    if message.content.lower() == "alo":
         await message.channel.send("# SO ASIK AH")
 
     await bot.process_commands(message)
 
 
-keep_alive()
 bot.run(TOKEN)
